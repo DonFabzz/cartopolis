@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Custom Map using Leaflet</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Materialize ui -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+              
+    <script src="../static/js/matrix.js"></script>
+    <script src="../static/js/select.js"></script>
+    <link rel="stylesheet" href="../static/css/custom.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+</head>
+<body>
+    <div class="flex">
+        <div id="nav">
+            <div id="alliances">
+                {% for alliance in alliances %}
+                    <div class="alliance" data-alliance-id="{{alliance.id}}" data-alliance-rank="{{alliance.rank}}">
+                        <div class="legend">
+                            <input type="checkbox">
+                        </div>
+                        <ul>
+                            <li>#{{alliance.rank}} {{alliance.name}}</li>
+                            <li>Points: {{alliance.points}} - Players: {{alliance.members}}</li>
+                        </ul>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="collection teal lighten-5">
+                <div class="collection-item teal lighten-5">
+                    <label class="center grey-text text-darken-4" for="picker">
+                        <button class="waves-effect waves-light btn-small" id="validate">Apply color for Alliances</button>
+                        <input type="color" id="picker">
+                    </label>
+                </div>
+                <div class="collection-item teal lighten-5">
+                    <label for="hide-island"><input type="checkbox" id="hide-island"><span class="grey-text text-darken-4">Show island (central)</span></label>
+                </div>
+                <div class="collection-item teal lighten-5">
+                    <label for="load-all"><input type="checkbox" id="load-all"><span class="grey-text text-darken-4">Load all the map</span></label>
+                </div>
+                <div class="collection-item teal lighten-5">
+                    <label for="hide-no-colors"><input type="checkbox" id="hide-no-colors"><span class="grey-text text-darken-4">Hide no colored towns</span></label>
+                </div>
+            </div>
+        </div>
+        <div id="map"></div>
+    </div>
+    <script>
+        var map = L.map('map', {
+            center: [-550,550],
+            zoom:2,
+            crs: L.CRS.Simple,
+            maxBounds: [[-200, 200], [-800, 800]],
+            minZoom: 1,
+        })
+        const FirstClick = true
+        const townsData = JSON.parse('{{ towns | safe }}');
+        const ratio = 0.0050
+        
+        for (let index = 200; index < 800; index+=100) {
+            var latlngs = [
+                [-200, index],
+                [-800, index]
+            ];
+
+            L.polyline(latlngs, {color: 'grey'}).addTo(map);
+            L.imageOverlay('./static/img/sea.png', [[-200,index], [-300,index+100]], {zIndex: 1}).addTo(map);
+            L.imageOverlay('./static/img/sea.png', [[-300,index], [-400,index+100]], {zIndex: 1}).addTo(map);
+            L.imageOverlay('./static/img/sea.png', [[-400,index], [-500,index+100]], {zIndex: 1}).addTo(map);
+            L.imageOverlay('./static/img/sea.png', [[-500,index], [-600,index+100]], {zIndex: 1}).addTo(map);
+            L.imageOverlay('./static/img/sea.png', [[-600,index], [-700,index+100]], {zIndex: 1}).addTo(map);
+            L.imageOverlay('./static/img/sea.png', [[-700,index], [-800,index+100]], {zIndex: 1}).addTo(map);
+        }
+
+        for (let index = 200; index < 800; index+=100) {
+            var latlngs = [
+                [-index, 200],
+                [-index, 800]
+            ];
+
+            L.polyline(latlngs, {color: 'grey'}).addTo(map);
+        }
+        
+        townsData.forEach( town => {
+            var offsets = matrix.filter(item => item.posOnIsland == town.number_on_island && item.islandType == town.isaland_type);
+            circle = L.circle(
+                [-town.island_y + (offsets[0].yOffset * ratio), town.island_x + (offsets[0].xOffset * ratio)],
+                {zIndex: 3, radius: 0.1, color:'#5c5c5c', fillOpacity:1}
+            );
+            
+            circle.alliance_id = town.alliance_id;
+            circle.player_id = town.player_id;
+            if(town.alliance_name){
+                circle.bindTooltip(
+                    '<img src="../static/img/player.png" />' + town.player_name + '<br>'
+                    + '<img src="../static/img/ally.png" />' + town.alliance_name + '<br>'
+                    + '<img src="../static/img/points.png" />' + town.points + 'pts'
+                );
+            } else {
+                circle.bindTooltip(
+                    '<img src="../static/img/player.png" />' + town.player_name + '<br>'
+                    + '<img src="../static/img/points.png" />' + town.points + 'pts'
+                );
+            }
+           
+            circle.addTo(map)
+        })
+
+        temples_matrix.forEach((temple)=>{
+            circle = L.circle(
+                [-temple.y, temple.x],
+                {zIndex: 3, radius: 0.6, color:'white', fillOpacity:1}
+            );
+            circle.bindTooltip('Mer: ' + temple.mer + '<br> <img src="../static/img/temple.png" />' + temple.temple + ' ')
+            circle.addTo(map)
+        })
+    </script>
+</body>
+</html>
